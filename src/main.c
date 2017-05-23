@@ -33,7 +33,7 @@ int current_logger_level = LOGGER_ERROR;
  * Print help message for this tool.
  */
 void help() {
-	printf("Usage: syncit [-d] [-h] file\n");
+	printf("Usage: syncit [-d|--debug] [-h|--help] file\n");
 }
 
 /*
