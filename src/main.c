@@ -24,6 +24,7 @@
 
 #include "logger.h"
 #include "sync.h"
+#include "version.h"
 
 int current_logger_level = LOGGER_ERROR;
 
@@ -33,7 +34,8 @@ int current_logger_level = LOGGER_ERROR;
  * Print help message for this tool.
  */
 void help() {
-	printf("Usage: syncit [-d|--debug] [-h|--help] file\n");
+	printf("syncit v%d.%d.%d+%s\n", SYNCIT_MAJOR, SYNCIT_MINOR, SYNCIT_PATCH, SYNCIT_GITHASH);
+	printf("Usage: syncit [-d|--debug] [-h|--help] [-v|--version] [-f file] [file]\n");
 }
 
 /*
@@ -41,15 +43,18 @@ void help() {
  */
 int main(int argc, char * argv[]) {
 	int opt = 0;
+	int entireFilesystem = 0;
 	char * path = NULL;
 	static struct option long_options[] = {
 		{"help", no_argument, 0, 'h' },
 		{"debug", no_argument, 0, 'd' },
+		{"version", no_argument, 0, 'v' },
+		{"filesystem", required_argument, 0, 'f' },
 		{0, 0, 0, 0}
 	};
 	int long_index = 0;
 
-	while ((opt = getopt_long(argc, argv,"hdf:", long_options, &long_index )) != -1) {
+	while ((opt = getopt_long(argc, argv,"hdvf:", long_options, &long_index )) != -1) {
 		switch (opt) {
 			case 'h':
 				help();
@@ -58,15 +63,23 @@ int main(int argc, char * argv[]) {
 			case 'd':
 				current_logger_level = LOGGER_DEBUG;
 				break;
+			case 'v':
+				printf("v%d.%d.%d+%s\n", SYNCIT_MAJOR, SYNCIT_MINOR, SYNCIT_PATCH, SYNCIT_GITHASH);
+				exit(EXIT_SUCCESS);
+				break;
+			case 'f':
+				path = optarg;
+				entireFilesystem = 1;
+				break;
 			default:
 				help();
 				exit(EXIT_FAILURE);
 		}
 	}
 
-	if (optind < argc) {
+	if ((optind < argc) && (entireFilesystem == 0)) {
 		path = argv[argc - 1]; /* Take the last argument as the file */
 	}
 
-	return syncToDisk(path);
+	return syncToDisk(path, entireFilesystem);
 }

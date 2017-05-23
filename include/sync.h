@@ -14,5 +14,6 @@
  * limitations under the License.
  */
 
-int syncAndClose(int fd);
-int syncToDisk(char * path);
+int syncFileAndClose(int fd);
+int syncFsAndClose(int fd);
+int syncToDisk(char * path, int filesystemOnly);

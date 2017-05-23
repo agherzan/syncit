@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define _GNU_SOURCE
+
 #include <fcntl.h>
 #include <libgen.h>
 #include <sys/stat.h>
@@ -22,13 +24,29 @@
 #include "logger.h"
 
 /*
- * Function: syncAndClose
+ * Function: syncFsAndClose
+ *
+ * Syncs the filesystem a file resides on and closes the file descriptor afterwards.
+ *
+ * fd: File descriptor to be used.
+ */
+int syncFsAndClose(int fd) {
+	if (syncfs(fd) != 0) {
+		close(fd);
+		return 1;
+	}
+	close(fd);
+	return 0;
+}
+
+/*
+ * Function: syncFileAndClose
  *
  * Syncs a file descriptor to disk and closes it afterwards.
  *
  * fd: File descriptor to be used.
  */
-int syncAndClose(int fd) {
+int syncFileAndClose(int fd) {
 	if (fsync(fd) != 0) {
 		close(fd);
 		return 1;
@@ -40,11 +58,11 @@ int syncAndClose(int fd) {
 /*
  * Function: syncToDisk
  *
- * Sync a file and it's parent directory to disk.
+ * Sync to disk a file, directory, filesystem or everything.
  *
  * path: File path.
  */
-int syncToDisk(char * path) {
+int syncToDisk(char * path, int entireFilesystem) {
 	int r, mode;
 	struct stat path_stat;
 
@@ -60,8 +78,6 @@ int syncToDisk(char * path) {
 		logger(LOGGER_ERROR, "Can't stat the file '%s'.\n", path);
 	mode = path_stat.st_mode & S_IFMT;
 
-	/* Sync file */
-	logger(LOGGER_INFO, "Sync file %s to disk.\n", path);
 	switch(mode) {
 		case S_IFREG:
 			if ((r = open(path, O_RDONLY)) == -1)
@@ -74,16 +90,25 @@ int syncToDisk(char * path) {
 		default:
 			logger(LOGGER_ERROR, "Unsupported file type.");
 	}
-	if (syncAndClose(r) != 0)
-		logger(LOGGER_ERROR, "Failed to sync.");
 
-	/* Sync parent directory */
-	logger(LOGGER_INFO, "Sync parent directory of file '%s' to disk.\n", path);
-	logger(LOGGER_DEBUG, "Parent directory of '%s' is '%s'.\n", path, dirname(path));
-	if ((r = open(dirname(path), O_RDONLY | O_DIRECTORY)) == -1)
-		logger(LOGGER_ERROR, "Can't open parent directory.");
-	if (syncAndClose(r) != 0)
-		logger(LOGGER_ERROR, "Failed to sync.");
+	if (entireFilesystem) {
+		/* Sync file-system */
+		logger(LOGGER_INFO, "Sync file-system determined by '%s'.\n", path);
+		if (syncFsAndClose(r) != 0)
+			logger(LOGGER_ERROR, "Failed to sync filesystem.\n");
+	} else {
+		/* Sync file */
+		logger(LOGGER_INFO, "Sync file %s to disk.\n", path);
+		if (syncFileAndClose(r) != 0)
+			logger(LOGGER_ERROR, "Failed to sync file %s.\n", path);
+		/* Sync parent directory */
+		logger(LOGGER_INFO, "Sync parent directory of file '%s' to disk.\n", path);
+		logger(LOGGER_DEBUG, "Parent directory of '%s' is '%s'.\n", path, dirname(path));
+		if ((r = open(dirname(path), O_RDONLY | O_DIRECTORY)) == -1)
+			logger(LOGGER_ERROR, "Can't open parent directory.");
+		if (syncFileAndClose(r) != 0)
+			logger(LOGGER_ERROR, "Failed to sync.");
+	}
 
 	return 0;
 }

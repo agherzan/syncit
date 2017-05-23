@@ -14,23 +14,51 @@
 # limitations under the License.
 #
 
-PROGRAM := syncit
-objects := src/main.o src/logger.o src/sync.o
+# Version
+SYNCIT_MAJOR = 0
+SYNCIT_MINOR = 0
+SYNCIT_PATCH = 1
 
+SRC_DIR := $(shell pwd)
+BUILD_DIR := $(shell pwd)
+PROGRAM := $(BUILD_DIR)/syncit
+SOURCES = $(wildcard $(SRC_DIR)/src/*.c)
+OBJECTS = $(patsubst $(SRC_DIR)/src/%.c,$(BUILD_DIR)/obj/%.o,$(SOURCES))
 CC := gcc
-CFLAGS := -I./include
-DEST := /usr/bin
+CFLAGS += -I$(SRC_DIR)/include
+CFLAGS += -I$(BUILD_DIR)/include
+INSTALL_DEST := /usr/bin
+
 
 .PHONY: all
-all: $(PROGRAM)
+all: dir $(PROGRAM)
 
-$(PROGRAM): $(objects)
+dir:
+	mkdir -p $(BUILD_DIR)/include
+	mkdir -p $(BUILD_DIR)/obj
+
+version.h:
+	mkdir -p $(BUILD_DIR)/include
+	echo "#define SYNCIT_MAJOR $(SYNCIT_MAJOR)" > $(BUILD_DIR)/include/$@
+	echo "#define SYNCIT_MINOR $(SYNCIT_MINOR)" >> $(BUILD_DIR)/include/$@
+	echo "#define SYNCIT_PATCH $(SYNCIT_PATCH)" >> $(BUILD_DIR)/include/$@
+	echo -n '#define SYNCIT_GITHASH "' >> $(BUILD_DIR)/include/$@
+	git rev-parse --short HEAD | tr -d "\n" >> $(BUILD_DIR)/include/$@
+	echo '"' >> $(BUILD_DIR)/include/$@
+
+$(BUILD_DIR)/obj/main.o: version.h $(SRC_DIR)/src/main.c
+	$(CC) -c $(CFLAGS) $(SRC_DIR)/src/main.c -o $(BUILD_DIR)/obj/main.o
+
+$(BUILD_DIR)/obj/%.o: $(SRC_DIR)/src/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(PROGRAM): $(OBJECTS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 .PHONY: install
 install: all
-	install $(PROGRAM) $(DEST)
+	install $(PROGRAM) $(INSTALL_DEST)
 
 .PHONY : clean
 clean :
-	rm -f $(PROGRAMS) $(objects)
+	rm -f $(PROGRAM) $(OBJECTS) $(BUILD_DIR)/include/version.h
