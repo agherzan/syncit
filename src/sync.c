@@ -52,7 +52,7 @@ int syncToDisk(char * path) {
 	if (!path) {
 		logger(LOGGER_INFO, "No path provided. Sync all buffered modifications.\n");
 		sync();
-		return 1;
+		return 0;
 	}
 
 	r = stat(path, &path_stat);
