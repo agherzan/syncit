@@ -40,7 +40,6 @@ void help() {
  * Function: main
  */
 int main(int argc, char * argv[]) {
-	int ret;
 	int opt = 0;
 	char * path = NULL;
 	static struct option long_options[] = {
