@@ -42,7 +42,7 @@ int logger(int logger_level, const char *format, ...) {
 			printf("[ERROR] ");
 			break;
 		case LOGGER_WARN:
-			printf("[WARN] ");
+			printf("[WARN ] ");
 			break;
 		case LOGGER_INFO:
 			printf("[INFO ] ");
