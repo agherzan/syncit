@@ -2,6 +2,12 @@
 
 This small tool provides the ability to sync files or directories while ensuring durability.
 
+It supports:
+
+* sync to disk a file or a directory while making sure the parent directory is fsync'ed too
+* sync to disk all the buffered modifications
+* sync to disk the filesystem on which a specific file resides
+
 ## Install
 
 ```
