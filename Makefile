@@ -57,6 +57,7 @@ $(PROGRAM): $(OBJECTS)
 
 .PHONY: install
 install: all
+	mkdir -p $(INSTALL_DEST)
 	install $(PROGRAM) $(INSTALL_DEST)
 
 .PHONY : clean
