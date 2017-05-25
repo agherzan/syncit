@@ -10,6 +10,10 @@ It supports:
 
 ## Install
 
+Do you like Arch Linux? You're in luck: https://aur.archlinux.org/packages/syncit/ . Cheers to <gergely [at] imreh [dot] net>!
+
+Otherwise:
+
 ```
 make
 make install
