@@ -17,7 +17,7 @@
 # Version
 SYNCIT_MAJOR = 0
 SYNCIT_MINOR = 0
-SYNCIT_PATCH = 1
+SYNCIT_PATCH = 2
 
 SRC_DIR := $(shell pwd)
 BUILD_DIR := $(shell pwd)
