@@ -26,6 +26,12 @@
 #include "sync.h"
 #include "version.h"
 
+#ifdef SYNCIT_GITHASH
+#define SYNCIT_VERSION SYNCIT_MAJOR "." SYNCIT_MINOR "." SYNCIT_PATCH "+" SYNCIT_GITHASH
+#else
+#define SYNCIT_VERSION SYNCIT_MAJOR "." SYNCIT_MINOR "." SYNCIT_PATCH
+#endif
+
 int current_logger_level = LOGGER_ERROR;
 
 /*
@@ -34,7 +40,7 @@ int current_logger_level = LOGGER_ERROR;
  * Print help message for this tool.
  */
 void help() {
-	printf("syncit v%d.%d.%d+%s\n", SYNCIT_MAJOR, SYNCIT_MINOR, SYNCIT_PATCH, SYNCIT_GITHASH);
+	printf("syncit v%s\n", SYNCIT_VERSION);
 	printf("Usage: syncit [-d|--debug] [-h|--help] [-v|--version] [-f file] [file]\n");
 }
 
@@ -64,7 +70,7 @@ int main(int argc, char * argv[]) {
 				current_logger_level = LOGGER_DEBUG;
 				break;
 			case 'v':
-				printf("v%d.%d.%d+%s\n", SYNCIT_MAJOR, SYNCIT_MINOR, SYNCIT_PATCH, SYNCIT_GITHASH);
+				printf("v%s\n", SYNCIT_VERSION);
 				exit(EXIT_SUCCESS);
 				break;
 			case 'f':
