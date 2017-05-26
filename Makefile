@@ -39,12 +39,16 @@ dir:
 
 version.h:
 	mkdir -p $(BUILD_DIR)/include
-	echo "#define SYNCIT_MAJOR $(SYNCIT_MAJOR)" > $(BUILD_DIR)/include/$@
-	echo "#define SYNCIT_MINOR $(SYNCIT_MINOR)" >> $(BUILD_DIR)/include/$@
-	echo "#define SYNCIT_PATCH $(SYNCIT_PATCH)" >> $(BUILD_DIR)/include/$@
+	echo "#define SYNCIT_MAJOR \"$(SYNCIT_MAJOR)\"" > $(BUILD_DIR)/include/$@
+	echo "#define SYNCIT_MINOR \"$(SYNCIT_MINOR)\"" >> $(BUILD_DIR)/include/$@
+	echo "#define SYNCIT_PATCH \"$(SYNCIT_PATCH)\"" >> $(BUILD_DIR)/include/$@
+ifeq ($(shell git rev-parse; echo $$?),0)
 	echo -n '#define SYNCIT_GITHASH "' >> $(BUILD_DIR)/include/$@
 	git rev-parse --short HEAD | tr -d "\n" >> $(BUILD_DIR)/include/$@
 	echo '"' >> $(BUILD_DIR)/include/$@
+else
+	$(info Not running in git.)
+endif
 
 $(BUILD_DIR)/obj/main.o: version.h $(SRC_DIR)/src/main.c
 	$(CC) -c $(CFLAGS) $(SRC_DIR)/src/main.c -o $(BUILD_DIR)/obj/main.o
