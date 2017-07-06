@@ -3,8 +3,7 @@
 set -e
 
 # Adjust as you want
-WRITES_TOTAL_SIZE_M=(20)
-#20 20 20)
+WRITES_TOTAL_SIZE_M=(20 20 20 20)
 WRITES_SIZE_M=(10 10 10 10)
 WRITES_OFFSET_M=(0 3 6 9)
 WRITES_SYNC=(y y y y)
@@ -90,6 +89,10 @@ help() {
 			Do not sync each file upon creation (before logging).
 			It will only sync the entire system after all initial files are
 			created and before starting to log.
+		--limit-patterns
+			By default the script will run all the patterns defined by the set
+			of variable WRITES_*. You can limit to run only the first n patterns
+			by setting this argument.
 EOF
 }
 
@@ -121,6 +124,13 @@ while [[ $# > 0 ]]; do
 		--no-sync-per-file-at-creation)
 			SYNC_PER_FILE_AT_CREATION="n"
 			;;
+		--limit-patterns)
+			if [ -z "$2" ]; then
+				log ERROR "\"$1\" argument needs a value."
+			fi
+			PATTERNS=$2
+			shift
+			;;
 		*)
 			echo "Unrecognized option $1."
 			help
@@ -129,6 +139,13 @@ while [[ $# > 0 ]]; do
 	esac
 	shift
 done
+
+# Handle limit number of patterns
+if [ -z "$PATTERNS" ] || [ $PATTERNS -ge ${#WRITES_TOTAL_SIZE_M[@]} ]; then
+	PATTERNS=${!WRITES_TOTAL_SIZE_M[@]}
+else
+	PATTERNS="$(seq 0 $((PATTERNS-1)))"
+fi
 
 cleanup () {
 	EXIT_CODE=$?
@@ -157,7 +174,7 @@ echo "Creating $FS filesystem"...
 $SYNC
 mkfs.$FS /dev/mapper/log
 mount /dev/mapper/log "$MOUNTPOINT"
-for i in "${!WRITES_TOTAL_SIZE_M[@]}"; do
+for i in $PATTERNS; do
 	writefile "$i" "${WRITES_TOTAL_SIZE_M[$i]}" "0" "$SYNC_PER_FILE_AT_CREATION" "n"
 	$SYNC $MOUNTPOINT
 	RESULTS_INITIAL_MD5[$i]=$(md5sum "$MOUNTPOINT/pattern$i" | awk '{print $1}')
@@ -167,14 +184,14 @@ umount $MOUNTPOINT ; $SYNC
 # Log writes
 mount /dev/mapper/log "$MOUNTPOINT"
 dmsetup message log 0 mark write
-for i in "${!WRITES_TOTAL_SIZE_M[@]}"; do
+for i in $PATTERNS; do
 	writefile "$i" "${WRITES_SIZE_M[$i]}" "${WRITES_OFFSET_M[$i]}" "${WRITES_SYNC[$i]}" "${WRITES_ATOMIC[$i]}"
 done
 dmsetup message log 0 mark written
 $SYNC
 
 # Save final md5s
-for i in "${!WRITES_TOTAL_SIZE_M[@]}"; do
+for i in $PATTERNS; do
 	RESULTS_FINAL_MD5[$i]=$(md5sum "$MOUNTPOINT/pattern$i" | awk '{print $1}')
 	echo "Pattern $i from ${RESULTS_INITIAL_MD5[$i]} to ${RESULTS_FINAL_MD5[$i]}."
 done
@@ -195,7 +212,7 @@ TARGET=/dev/mapper/$SNAPSHOTCOW
 
 echo "replaying to mark"
 # Initilize failed for nice output
-for i in "${!WRITES_TOTAL_SIZE_M[@]}"; do
+for i in $PATTERNS; do
 	RESULTS_FAILED_FSCK[$i]=0
 	RESULTS_FAILED_STATES[$i]=0
 done
@@ -221,7 +238,7 @@ while [ $ENTRY -lt $LAST_ENTRY ]; do
 		set -e
 	fi
 	try 3 mount $TARGET $MOUNTPOINT
-	for i in "${!WRITES_TOTAL_SIZE_M[@]}"; do
+	for i in $PATTERNS; do
 		RESULTS_CURRENT_MD5[$i]=$(md5sum $MOUNTPOINT/pattern$i | awk '{print $1}')
 		if [ "${RESULTS_CURRENT_MD5[$i]}" = "${RESULTS_INITIAL_MD5[$i]}" -o "${RESULTS_CURRENT_MD5[$i]}" = "${RESULTS_FINAL_MD5[$i]}" ]; then
 			RESULT="pass"
@@ -240,6 +257,6 @@ done
 
 # Report
 echo -e "\nFilesystem $FS:"
-for i in "${!WRITES_TOTAL_SIZE_M[@]}"; do
+for i in $PATTERNS; do
 	echo -e "Pattern$i (sync=${WRITES_SYNC[$i]}) md5sum check failed in ${RESULTS_FAILED_STATES[$i]} states and ${RESULTS_FAILED_FSCK[$i]} fs checks out of $STATES replayed states. Did$(if [ ${RESULTS_CURRENT_MD5[$i]} != ${RESULTS_FINAL_MD5[$i]} ]; then echo " not"; fi) arrive at final md5.\n"
 done
