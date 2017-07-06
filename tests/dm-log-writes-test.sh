@@ -8,7 +8,6 @@ WRITES_SIZE_M=(10 10 10 10)
 WRITES_OFFSET_M=(0 3 6 9)
 WRITES_SYNC=(y y y y)
 WRITES_ATOMIC=(y y y y)
-SYNC="sync"
 
 # Don't touch
 RESULTS_INITIAL_MD5=()
@@ -25,6 +24,7 @@ SNAPSHOTCOW="replay-cow"
 FSCK="no"
 FS="ext4"
 SYNC_PER_FILE_AT_CREATION="y"
+SYNC="sync"
 
 # Cleanup working directories
 rm -rf "$WORKDIR"
