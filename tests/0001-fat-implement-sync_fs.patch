@@ -1,0 +1,44 @@
+From be0ab85a6cca092ecc25d0559682568c3be3c15e Mon Sep 17 00:00:00 2001
+From: Andrei Gherzan <andrei@resin.io>
+Date: Thu, 6 Jul 2017 11:55:36 +0100
+Subject: [PATCH] fat: implement sync_fs
+
+If we call sync on a dirty fat fs and then pull the plug the fs will not be
+consistent. Andrei Gherzan noticed this when testing fat with log-writes. Fix
+this by syncing out the metadata at sync_fs time.
+
+Reported-by: Andrei Gherzan <andrei@gherzan.com>
+Signed-off-by: Josef Bacik <jbacik@fb.com>
+---
+ fs/fat/inode.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/fs/fat/inode.c b/fs/fat/inode.c
+index cf644d5..7358f98 100644
+--- a/fs/fat/inode.c
++++ b/fs/fat/inode.c
+@@ -819,6 +819,13 @@ int fat_sync_inode(struct inode *inode)
+ 
+ EXPORT_SYMBOL_GPL(fat_sync_inode);
+ 
++static int fat_sync_fs(struct super_block *sb, int wait)
++{
++	if (!wait)
++		return filemap_flush(MSDOS_SB(sb)->fat_inode->i_mapping);
++	return sync_mapping_buffers(MSDOS_SB(sb)->fat_inode->i_mapping);
++}
++
+ static int fat_show_options(struct seq_file *m, struct dentry *root);
+ static const struct super_operations fat_sops = {
+ 	.alloc_inode	= fat_alloc_inode,
+@@ -828,6 +835,7 @@ static const struct super_operations fat_sops = {
+ 	.put_super	= fat_put_super,
+ 	.statfs		= fat_statfs,
+ 	.remount_fs	= fat_remount,
++	.sync_fs	= fat_sync_fs,
+ 
+ 	.show_options	= fat_show_options,
+ };
+-- 
+2.7.4
+
